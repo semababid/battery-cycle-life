@@ -6,7 +6,7 @@ The data comes from Severson et al. (2019), "Data-driven prediction of battery c
 
 ![Capacity fade of all 124 cells](reports/figures/capacity_all_cells.png)
 
-This is work in progress. The data is cleaned and explored; no models yet.
+This is work in progress. The data is cleaned and explored, and the paper's simplest model is reproduced.
 
 ## Data so far
 
@@ -19,6 +19,22 @@ The paper uses 124 of the 140 cells. Notebook 04 gets to the same 124:
 That leaves 41 training cells, 43 primary test cells and 40 cells in a later batch, the same split as the paper.
 
 Capacity on its own says little about lifetime at cycle 100. Most cells still look the same at that point, and 81% of them have slightly more capacity than at cycle 2 (notebook 05).
+
+## First model: ΔQ(V)
+
+The paper's key feature is ΔQ(V): the discharge curve at cycle 100 minus the one at cycle 10, on a fixed voltage grid. Cells that die early already show a deeper, wider dip in this curve, even when their capacity still looks fine.
+
+![ΔQ curves of the training cells, coloured by cycle life](reports/figures/delta_q_train.png)
+
+One number per cell, log10 of the variance of ΔQ, has a correlation of -0.90 with log10 cycle life on the training cells. A straight line through it (notebook 06):
+
+| Model | Train RMSE | Primary test RMSE | Primary test MAPE |
+|---|---|---|---|
+| Predict the mean life | 323 cycles | 393 cycles | 39.5% |
+| log10 var(ΔQ), linear | 104 cycles | 138 cycles | 14.7% |
+| Paper, same model | | 138 cycles | |
+
+Most of the remaining error comes from three test cells that live over 1,700 cycles. Only one training cell lives that long, so the model is extrapolating there. The later batch is kept aside until the final test.
 
 ## Limitations
 
