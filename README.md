@@ -34,6 +34,8 @@ One number per cell, log10 of the variance of ΔQ, has a correlation of -0.90 wi
 | log10 var(ΔQ), linear | 104 cycles | 138 cycles | 14.7% |
 | Paper, same model | | 138 cycles | |
 
+The test set has only 43 cells, so the 138 isn't precise: resampling them gives a 95% range of 92 to 191 cycles. The paper leaves the shortest-lived test cell (b2c1) out; without it the result is 138.3, so the match holds either way.
+
 Most of the remaining error comes from three test cells that live over 1,700 cycles. Only one training cell lives that long, so the model is extrapolating there. The later batch is kept aside until the final test.
 
 ## Limitations
@@ -42,6 +44,7 @@ Most of the remaining error comes from three test cells that live over 1,700 cyc
 - Four later-batch cells are dropped only because the paper calls them noisy. Only one of them looks noisy in my checks.
 - The later batch was run with a changed test setup ("newstructure" in the policy names). Its cells live longer, their charge time barely changes from cycle to cycle, their resistance is lower, and only 1 of its 8 charging policies was used in batches 1 and 2 (notebook 05). A model trained on batches 1 and 2 is likely to do worse there.
 - The overview plots in notebook 05 use all cells, test cells included. Model features are chosen on the training cells only.
+- With 43 test cells, differences of less than about 50 cycles between models can't be trusted from the test set alone, so models are compared with cross-validation on the training cells.
 
 ## Setup
 
