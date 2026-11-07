@@ -34,10 +34,12 @@ def get_summary(f, i):
     return {key: group[key][0, :] for key in group.keys()}
 
 
-def get_qdlin(f, i, cycle_index):
-    # discharge capacity of one cycle on the fixed Vdlin voltage grid
+def get_qdlin(f, i, cycle):
+    # discharge capacity of one cycle on the fixed Vdlin voltage grid.
+    # `cycle` is the cycle number as in the summary (starts at 1).
+    # The curves are stored from position 0, so cycle n is at position n - 1.
     cyc = f[f["batch"]["cycles"][i, 0]]
-    return f[cyc["Qdlin"][cycle_index, 0]][()].flatten()
+    return f[cyc["Qdlin"][cycle - 1, 0]][()].flatten()
 
 
 def get_vdlin(f):
