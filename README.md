@@ -20,18 +20,25 @@ That leaves 41 training cells, 43 primary test cells and 40 cells in a later bat
 
 Capacity on its own says little about lifetime at cycle 100. Most cells still look the same at that point, and 81% of them have slightly more capacity than at cycle 2 (notebook 05).
 
+## Limitations
+
+- Cells that never reached 80% capacity are left out, because their lifetime is unknown. That includes the two longest-running cells of the later batch, so the data has no very long-lived cells that were still going when the test ended.
+- Four later-batch cells are dropped only because the paper calls them noisy. Only one of them looks noisy in my checks.
+- The later batch was run with a changed test setup ("newstructure" in the policy names). Its cells live longer, their charge time barely changes from cycle to cycle, their resistance is lower, and only 1 of its 8 charging policies was used in batches 1 and 2 (notebook 05). A model trained on batches 1 and 2 is likely to do worse there.
+- The overview plots in notebook 05 use all cells, test cells included. Model features are chosen on the training cells only.
+
 ## Setup
 
 Python 3.13:
 
 ```bash
-python3 -m venv .venv
+python3.13 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ./scripts/download_data.sh
 ```
 
-The download script fetches the three batches from data.matr.io (about 8.3 GB) into `data/raw/`, which git ignores.
+The download script fetches the three batches from data.matr.io (about 8.3 GB) into `data/raw/`, which git ignores. Then run the notebooks in order, 01 to 05. Notebooks 02 to 04 write the tables in `data/` that the later ones read.
 
 ## Layout
 
@@ -39,3 +46,9 @@ The download script fetches the three batches from data.matr.io (about 8.3 GB) i
 - `src/` code the notebooks share
 - `reports/figures/` saved plots
 - `scripts/` data download
+
+## Data and credits
+
+- Data: Severson, Attia et al., "Data-driven prediction of battery cycle life before capacity degradation", Nature Energy 4, 383-391 (2019). Downloaded from data.matr.io; check the terms there before reusing it.
+- Which cells to merge and drop follows the authors' data loading notebook (github.com/rdbraatz/data-driven-prediction-of-battery-cycle-life-before-capacity-degradation).
+- The train and test cell lists in `src/split.py` are taken from Microsoft's BatteryML (MIT license).
