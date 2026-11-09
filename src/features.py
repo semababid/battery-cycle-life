@@ -29,3 +29,21 @@ def delta_q_all(cell_ids, root="", first=10, last=100):
 def log_var(curves):
     # the paper's single feature: log10 of the variance of each delta Q curve
     return np.log10(curves.var(axis=1, ddof=0))
+
+
+def summary_features(cycles, last=100):
+    # simple features from the per-cycle summary, one row per cell.
+    # Uses cycles 2 to `last` only (cycle 1 is empty in batch 1).
+    # nan-aware because of the glitches at cycles 12 and 13 in batch 1.
+    window = cycles[(cycles["cycle"] >= 2) & (cycles["cycle"] <= last)]
+    rows = {}
+    for cell, d in window.groupby("cell_id"):
+        d = d.set_index("cycle")
+        rows[cell] = {
+            "q2": d.loc[2, "q_discharge"],
+            "q_max_minus_q2": d["q_discharge"].max() - d.loc[2, "q_discharge"],
+            "ir_change": d.loc[last, "ir"] - d.loc[2, "ir"],
+            "charge_time_first5": d.loc[2:6, "charge_time"].mean(),
+            "t_avg_mean": d["t_avg"].mean(),
+        }
+    return pd.DataFrame.from_dict(rows, orient="index")
