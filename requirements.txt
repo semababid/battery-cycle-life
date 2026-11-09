@@ -5,3 +5,4 @@ scikit-learn==1.9.1
 h5py==3.16.0
 jupyter==1.1.1
 pyarrow==26.0.1
+pytest==9.2.0
