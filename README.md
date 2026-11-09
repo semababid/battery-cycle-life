@@ -57,12 +57,19 @@ pip install -r requirements.txt
 ./scripts/download_data.sh
 ```
 
-The download script fetches the three batches from data.matr.io (about 8.3 GB) into `data/raw/`, which git ignores. Then run the notebooks in order, 01 to 05. Notebooks 02 to 04 write the tables in `data/` that the later ones read.
+The download script fetches the three batches from data.matr.io (about 8.3 GB) into `data/raw/`, which git ignores. Then run the notebooks in order, 01 to 07. Most of them save tables in `data/` that the later ones read.
+
+The tests check that no feature uses data from after the cycles it is allowed to see. They use made-up data, so they run without the download:
+
+```bash
+pytest
+```
 
 ## Layout
 
 - `notebooks/` exploration, in the order I did it
 - `src/` code the notebooks share
+- `tests/` checks that features don't look ahead
 - `reports/figures/` saved plots
 - `scripts/` data download
 
