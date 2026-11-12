@@ -1,0 +1,11 @@
+cycles used,model,CV RMSE,CV spread (sd),test RMSE,test MAPE (%)
+20,B: log_var line,299.33,166.93,386.59,31.94
+20,D: Elastic Net,196.69,94.48,204.93,24.06
+40,B: log_var line,190.33,66.63,224.76,23.37
+40,D: Elastic Net,146.32,60.02,153.46,17.92
+60,B: log_var line,122.25,24.89,227.81,15.67
+60,D: Elastic Net,84.71,18.27,186.72,14.12
+80,B: log_var line,118.5,23.53,213.53,14.78
+80,D: Elastic Net,89.24,19.25,170.97,12.25
+100,B: log_var line,107.97,18.94,137.87,14.75
+100,D: Elastic Net,81.64,16.75,113.71,12.83
