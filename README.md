@@ -56,6 +56,18 @@ On the test set the Elastic Net is 24 cycles better than the line (notebook 09).
 
 It still struggles with the same cells as the first model. The three test cells above 1,500 cycles have an RMSE of 329, against 76 for the other 40. And b2c1, which dies at 148 cycles, is predicted at 335.
 
+## How early can it predict?
+
+The same two models, given only the first 20, 40, 60, 80 or 100 cycles (notebook 10):
+
+![Prediction error against the number of cycles used](reports/figures/how_early.png)
+
+In cross-validation the error falls until about 60 cycles and then stays flat: the Elastic Net is at 85 cycles with 60 cycles of data and at 82 with 100. Before that, ΔQ hasn't built up enough. After 20 cycles the model ignores it and mostly guesses from the charge time.
+
+The primary test set looks worse at 60 and 80 cycles (187 and 171), and almost all of that is one long-lived cell, b1c0, predicted 830 to 900 cycles too long. Its ΔQ variance at that point is lower than any training cell's. On the other 40 test cells the error is 76, 72 and 76 cycles at 60, 80 and 100 cycles.
+
+So 60 cycles look like enough for typical cells, and not for the ones that end up living very long. With three such cells in the test set, that's a pattern to keep in mind, not a firm result.
+
 ## Limitations
 
 - Cells that never reached 80% capacity are left out, because their lifetime is unknown. That includes the two longest-running cells of the later batch, so the data has no very long-lived cells that were still going when the test ended.
@@ -75,7 +87,7 @@ pip install -r requirements.txt
 ./scripts/download_data.sh
 ```
 
-The download script fetches the three batches from data.matr.io (about 8.3 GB) into `data/raw/`, which git ignores. Then run the notebooks in order, 01 to 09. Most of them save tables in `data/` that the later ones read.
+The download script fetches the three batches from data.matr.io (about 8.3 GB) into `data/raw/`, which git ignores. Then run the notebooks in order, 01 to 10. Most of them save tables in `data/` that the later ones read.
 
 The tests check that no feature uses data from after the cycles it is allowed to see. They use made-up data, so they run without the download:
 
