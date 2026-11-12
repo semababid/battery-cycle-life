@@ -6,7 +6,7 @@ The data comes from Severson et al. (2019), "Data-driven prediction of battery c
 
 ![Capacity fade of all 124 cells](reports/figures/capacity_all_cells.png)
 
-This is work in progress. The data is cleaned and explored, and the paper's simplest model is reproduced.
+This is work in progress. The data is cleaned and explored, the paper's simplest model is reproduced, and a second model with a few more features is scored on the primary test set. The later batch hasn't been touched yet.
 
 ## Data so far
 
@@ -38,6 +38,24 @@ The test set has only 43 cells, so the 138 isn't precise: resampling them gives 
 
 Most of the remaining error comes from three test cells that live over 1,700 cycles. Only one training cell lives that long, so the model is extrapolating there. The later batch is kept aside until the final test.
 
+## Second model: a few more features
+
+Five simple features from the per-cycle summary are added to log10 var(ΔQ): capacity at cycle 2, the early rise in capacity, the change in resistance, the charge time of the first cycles and the mean temperature (notebook 07). A test checks that none of them reads anything after cycle 100.
+
+The model was picked on the training cells only, with 5-fold cross-validation repeated 20 times (notebook 08). An Elastic Net on all six features came out best. A curved version of the first model did badly, because its prediction runs away for the longest-lived cell.
+
+| Model | CV RMSE (training cells) | Primary test RMSE | Primary test MAPE |
+|---|---|---|---|
+| log10 var(ΔQ), linear | 108 cycles | 138 cycles | 14.7% |
+| log10 var(ΔQ), curved | 170 cycles | not scored | |
+| Elastic Net, 6 features | 82 cycles | 114 cycles | 12.8% |
+
+On the test set the Elastic Net is 24 cycles better than the line (notebook 09). Resampling the test cells puts that difference between 8 and 36 cycles, and the Elastic Net comes out ahead in 99.8% of the resamples. It keeps four of the six features and sets resistance change and temperature to zero.
+
+![Predicted vs actual on the primary test set](reports/figures/pred_vs_actual_primary.png)
+
+It still struggles with the same cells as the first model. The three test cells above 1,500 cycles have an RMSE of 329, against 76 for the other 40. And b2c1, which dies at 148 cycles, is predicted at 335.
+
 ## Limitations
 
 - Cells that never reached 80% capacity are left out, because their lifetime is unknown. That includes the two longest-running cells of the later batch, so the data has no very long-lived cells that were still going when the test ended.
@@ -57,7 +75,7 @@ pip install -r requirements.txt
 ./scripts/download_data.sh
 ```
 
-The download script fetches the three batches from data.matr.io (about 8.3 GB) into `data/raw/`, which git ignores. Then run the notebooks in order, 01 to 07. Most of them save tables in `data/` that the later ones read.
+The download script fetches the three batches from data.matr.io (about 8.3 GB) into `data/raw/`, which git ignores. Then run the notebooks in order, 01 to 09. Most of them save tables in `data/` that the later ones read.
 
 The tests check that no feature uses data from after the cycles it is allowed to see. They use made-up data, so they run without the download:
 
