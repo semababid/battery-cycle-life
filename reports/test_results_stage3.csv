@@ -1,0 +1,10 @@
+set,model,RMSE (cycles),MAPE (%)
+train,A: mean,323.13,33.49
+train,B: log_var line,103.57,14.12
+train,D: Elastic Net,76.21,10.03
+primary test,A: mean,392.79,39.46
+primary test,B: log_var line,137.87,14.75
+primary test,D: Elastic Net,113.71,12.83
+primary test without b2c1,A: mean,389.07,31.94
+primary test without b2c1,B: log_var line,138.3,13.19
+primary test without b2c1,D: Elastic Net,111.4,10.14
