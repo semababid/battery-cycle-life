@@ -110,7 +110,7 @@ pip install -r requirements.txt
 
 The download script fetches the three batches from data.matr.io (about 8.3 GB) into `data/raw/`, which git ignores. Then run the notebooks in order, 01 to 11. Most of them save tables in `data/` that the later ones read.
 
-The tests check that no feature uses data from after the cycles it is allowed to see. They use made-up data, so they run without the download:
+The tests check that no feature uses data from after the cycles it is allowed to see, and that the error measures and the model recipe behave as expected. They use made-up data, so they run without the download:
 
 ```bash
 pytest
@@ -119,8 +119,8 @@ pytest
 ## Layout
 
 - `notebooks/` exploration, in the order I did it
-- `src/` code the notebooks share
-- `tests/` checks that features don't look ahead
+- `src/` code the notebooks share: reading the raw files (`load.py`), the features (`features.py`), the model recipe and error measures (`models.py`), and the paper's split (`split.py`)
+- `tests/` checks on the features and the model code
 - `reports/figures/` saved plots
 - `scripts/` data download
 
