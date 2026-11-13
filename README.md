@@ -6,7 +6,7 @@ The data comes from Severson et al. (2019), "Data-driven prediction of battery c
 
 ![Capacity fade of all 124 cells](reports/figures/capacity_all_cells.png)
 
-This is work in progress. The data is cleaned and explored, the paper's simplest model is reproduced, and a second model with a few more features is scored on the primary test set. The later batch hasn't been touched yet.
+The modelling is done. The paper's simplest model is reproduced, a second model with a few more features is chosen by cross-validation, and both are scored on the primary test set and, once, on a batch that was cycled a year later. The short version: the bigger model wins on the first test set and loses on the later batch. A small demo app is still to come.
 
 ## Data so far
 
@@ -68,6 +68,26 @@ The primary test set looks worse at 60 and 80 cycles (187 and 171), and almost a
 
 So 60 cycles look like enough for typical cells, and not for the ones that end up living very long. With three such cells in the test set, that's a pattern to keep in mind, not a firm result.
 
+## Final test: the later batch
+
+Batch 3 was cycled about a year after the others, with a changed setup and mostly different charging policies. Both models were fixed before they were scored on it, once (notebook 11).
+
+| Model (RMSE in cycles) | Train | Primary test | Later batch |
+|---|---|---|---|
+| Predict the mean life | 323 | 393 | 470 |
+| log10 var(ΔQ), linear | 104 | 138 | 196 |
+| Elastic Net, 6 features | 76 | 114 | 262 |
+| Paper, variance model | | 138 | 196 |
+| Paper, full model | | 100 | 214 |
+
+On the later batch the order flips. The Elastic Net is 66 cycles worse than the one-feature line (95% range of the difference: 37 to 93), and it predicts 39 of the 40 cells too short. The paper's own bigger model shows the same flip.
+
+The reason is that this batch looks different in the extra features. All 40 cells start with less capacity than the median training cell, and 36 of them charge in under 10.5 minutes, which in batches 1 and 2 went with a short life (median 489 cycles). Here the median life is 964. The Elastic Net learned those links from batches 1 and 2 and they don't hold in batch 3. The ΔQ feature carries over much better.
+
+![Predicted vs actual on the later batch](reports/figures/pred_vs_actual_later_batch.png)
+
+Cross-validation didn't catch this, because every fold came from batches 1 and 2. I left both models as they were. For new cells from the same setup the Elastic Net is the better one, and for cells from an unknown setup I would use the line.
+
 ## Limitations
 
 - Cells that never reached 80% capacity are left out, because their lifetime is unknown. That includes the two longest-running cells of the later batch, so the data has no very long-lived cells that were still going when the test ended.
@@ -75,6 +95,7 @@ So 60 cycles look like enough for typical cells, and not for the ones that end u
 - The later batch was run with a changed test setup ("newstructure" in the policy names). Its cells live longer, their charge time barely changes from cycle to cycle, their resistance is lower, and only 1 of its 8 charging policies was used in batches 1 and 2 (notebook 05). A model trained on batches 1 and 2 is likely to do worse there.
 - The overview plots in notebook 05 use all cells, test cells included. Model features are chosen on the training cells only.
 - With 43 test cells, differences of less than about 50 cycles between models can't be trusted from the test set alone, so models are compared with cross-validation on the training cells.
+- That cross-validation only uses batches 1 and 2, so it says nothing about a new batch. A check that holds out a whole batch at a time is missing.
 
 ## Setup
 
@@ -87,7 +108,7 @@ pip install -r requirements.txt
 ./scripts/download_data.sh
 ```
 
-The download script fetches the three batches from data.matr.io (about 8.3 GB) into `data/raw/`, which git ignores. Then run the notebooks in order, 01 to 10. Most of them save tables in `data/` that the later ones read.
+The download script fetches the three batches from data.matr.io (about 8.3 GB) into `data/raw/`, which git ignores. Then run the notebooks in order, 01 to 11. Most of them save tables in `data/` that the later ones read.
 
 The tests check that no feature uses data from after the cycles it is allowed to see. They use made-up data, so they run without the download:
 
