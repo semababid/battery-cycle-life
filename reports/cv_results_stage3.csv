@@ -1,5 +1,5 @@
 model,CV RMSE (cycles),spread (sd),CV MAPE (%),beats B in % of folds
 A: mean,296.8,155.27,30.76,0.0
-B: log_var line,107.97,18.94,14.79,0.0
+B: log_var line,107.97,18.94,14.79,
 C: log_var curve,170.12,137.49,16.03,45.0
 D: Elastic Net,81.64,16.75,10.99,89.0
