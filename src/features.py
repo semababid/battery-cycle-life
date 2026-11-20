@@ -35,10 +35,17 @@ def summary_features(cycles, last=100):
     # simple features from the per-cycle summary, one row per cell.
     # Uses cycles 2 to `last` only (cycle 1 is empty in batch 1).
     # nan-aware because of the glitches at cycles 12 and 13 in batch 1.
+    # Some features read single cycles (2 to 6 and `last`). If one of those is
+    # missing, stop with a clear error instead of returning a silent NaN.
     window = cycles[(cycles["cycle"] >= 2) & (cycles["cycle"] <= last)]
     rows = {}
     for cell, d in window.groupby("cell_id"):
         d = d.set_index("cycle")
+        for n in [2, 3, 4, 5, 6, last]:
+            if n not in d.index:
+                raise ValueError(f"{cell}: cycle {n} is missing")
+        if pd.isna(d.loc[2, "q_discharge"]) or d.loc[[2, last], "ir"].isna().any():
+            raise ValueError(f"{cell}: capacity at cycle 2 or resistance at cycle 2 or {last} is missing")
         rows[cell] = {
             "q2": d.loc[2, "q_discharge"],
             "q_max_minus_q2": d["q_discharge"].max() - d.loc[2, "q_discharge"],

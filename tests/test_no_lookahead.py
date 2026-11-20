@@ -56,3 +56,17 @@ def test_delta_q_reads_only_the_two_cycles(monkeypatch, first, last):
 
     assert sorted(asked) == [first, last]
     assert np.allclose(dq, last - first)
+
+
+def test_summary_features_stop_on_a_missing_cycle():
+    cycles = fake_cycles()
+    short = cycles[~((cycles["cell_id"] == "cell0") & (cycles["cycle"] == 100))]
+    with pytest.raises(ValueError, match="cell0: cycle 100 is missing"):
+        features.summary_features(short, last=100)
+
+
+def test_summary_features_stop_on_missing_resistance():
+    cycles = fake_cycles()
+    cycles.loc[(cycles["cell_id"] == "cell1") & (cycles["cycle"] == 2), "ir"] = np.nan
+    with pytest.raises(ValueError, match="cell1"):
+        features.summary_features(cycles, last=100)
