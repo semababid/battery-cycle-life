@@ -50,7 +50,7 @@ The model was picked on the training cells only, with 5-fold cross-validation re
 | log10 var(ΔQ), curved | 170 cycles | not scored | |
 | Elastic Net, 6 features | 82 cycles | 114 cycles | 12.8% |
 
-On the test set the Elastic Net is 24 cycles better than the line (notebook 09). Resampling the test cells puts that difference between 8 and 36 cycles, and the Elastic Net comes out ahead in 99.8% of the resamples. It keeps four of the six features and sets resistance change and temperature to zero.
+On the test set the Elastic Net is 24 cycles better than the line (notebook 09). Fitting it with other random seeds gives 112 to 114, so this result doesn't depend on the seed. Resampling the test cells puts that difference between 8 and 36 cycles, and the Elastic Net comes out ahead in 99.8% of the resamples. It keeps four of the six features and sets resistance change and temperature to zero.
 
 ![Predicted vs actual on the primary test set](reports/figures/pred_vs_actual_primary.png)
 
@@ -76,17 +76,17 @@ Batch 3 was cycled about a year after the others, with a changed setup and mostl
 |---|---|---|---|
 | Predict the mean life | 323 | 393 | 470 |
 | log10 var(ΔQ), linear | 104 | 138 | 196 |
-| Elastic Net, 6 features | 76 | 114 | 262 |
+| Elastic Net, 6 features | 76 | 114 | 262 (209 to 262) |
 | Paper, variance model | | 138 | 196 |
 | Paper, full model | | 100 | 214 |
 
-On the later batch the order flips. The Elastic Net is 66 cycles worse than the one-feature line (95% range of the difference: 37 to 93), and it predicts 39 of the 40 cells too short. The paper's own bigger model shows the same flip.
+On the later batch the order flips. The Elastic Net picks its amount of shrinking with a small cross-validation of its own, and that depends on a random seed. With ten seeds its later-batch RMSE is 209 to 262; 262 is the seed used everywhere else, and also the worst of the ten. It is worse than the one-feature line in all ten runs, by 13 to 67 cycles, and predicts 35 to 39 of the 40 cells too short. How big the gap is isn't settled: for six of the ten seeds its 95% range includes zero. The paper's own bigger model shows the same flip.
 
 The reason is that this batch looks different in the extra features. All 40 cells start with less capacity than the median training cell, and 36 of them charge in under 10.5 minutes, which in batches 1 and 2 went with a short life (median 489 cycles). Here the median life is 964. The Elastic Net learned those links from batches 1 and 2 and they don't hold in batch 3. The ΔQ feature carries over much better.
 
 ![Predicted vs actual on the later batch](reports/figures/pred_vs_actual_later_batch.png)
 
-Cross-validation didn't catch this, because every fold came from batches 1 and 2. I left both models as they were. For new cells from the same setup the Elastic Net is the better one, and for cells from an unknown setup I would use the line.
+Cross-validation didn't catch this, because every fold mixed batches 1 and 2. Training on one of those batches and checking on the other gives a mixed answer: the Elastic Net wins in one direction (102 against 158 cycles) and loses badly in the other (606 against 416). I left both models as they were. For new cells from the same setup the Elastic Net is the better one, and for cells from an unknown setup I would use the line.
 
 ## Limitations
 
@@ -95,7 +95,8 @@ Cross-validation didn't catch this, because every fold came from batches 1 and 2
 - The later batch was run with a changed test setup ("newstructure" in the policy names). Its cells live longer, their charge time barely changes from cycle to cycle, their resistance is lower, and only 1 of its 8 charging policies was used in batches 1 and 2 (notebook 05). A model trained on batches 1 and 2 is likely to do worse there.
 - The overview plots in notebook 05 use all cells, test cells included. Model features are chosen on the training cells only.
 - With 43 test cells, differences of less than about 50 cycles between models can't be trusted from the test set alone, so models are compared with cross-validation on the training cells.
-- That cross-validation only uses batches 1 and 2, so it says nothing about a new batch. A check that holds out a whole batch at a time is missing.
+- That cross-validation only uses batches 1 and 2, so it says nothing about a new batch. Holding out a whole training batch can only be done two ways here, which is too few to rely on.
+- The ranges from resampling test cells don't include the random seed of the Elastic Net or the choice of training cells. The seed is checked separately in notebook 11.
 
 ## Setup
 
