@@ -117,8 +117,15 @@ The tests check that no feature uses data from after the cycles it is allowed to
 pytest
 ```
 
+There is also a small app. Pick a cell and it shows the cell's capacity over its whole life, its ΔQ curve next to the training cells, and what both models predict against how long it really lasted. For now it reads the tables in `data/`, so the notebooks have to be run first:
+
+```bash
+streamlit run app.py
+```
+
 ## Layout
 
+- `app.py` the small app
 - `notebooks/` exploration, in the order I did it
 - `src/` code the notebooks share: reading the raw files (`load.py`), the features (`features.py`), the model recipe and error measures (`models.py`), and the paper's split (`split.py`)
 - `tests/` checks on the features and the model code
