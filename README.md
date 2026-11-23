@@ -117,7 +117,7 @@ The tests check that no feature uses data from after the cycles it is allowed to
 pytest
 ```
 
-There is also a small app. Pick a cell and it shows the cell's capacity over its whole life, its ΔQ curve next to the training cells, and what both models predict against how long it really lasted. It loads the two final models from `models/` instead of fitting them each time. `scripts/save_models.py` fits them on the 41 training cells and saves them there; they give exactly the predictions reported in notebooks 09 and 11. For the curves the app still reads the tables in `data/`, so for now the notebooks have to be run first:
+There is also a small app. Pick a cell and it shows the cell's capacity over its whole life, its ΔQ curve next to the training cells, and what both models predict against how long it really lasted. It loads the two final models from `models/` instead of fitting them each time. `scripts/save_models.py` fits them on the 41 training cells and saves them there; they give exactly the predictions reported in notebooks 09 and 11. For the plots and inputs it reads a small bundle in `app_data/` (1.8 MB instead of the 8 GB download), made by `scripts/make_app_data.py` from the notebook tables. Both folders are in git, so the app runs right after cloning, without the download:
 
 ```bash
 streamlit run app.py
@@ -126,12 +126,13 @@ streamlit run app.py
 ## Layout
 
 - `app.py` the small app
+- `app_data/` the small data bundle the app reads
 - `models/` the two final models, saved for the app (with `info.json`: inputs, settings, scikit-learn version)
 - `notebooks/` exploration, in the order I did it
 - `src/` code the notebooks share: reading the raw files (`load.py`), the features (`features.py`), the model recipe and error measures (`models.py`), and the paper's split (`split.py`)
 - `tests/` checks on the features and the model code
 - `reports/figures/` saved plots
-- `scripts/` data download and saving the models
+- `scripts/` data download, saving the models and building the app bundle
 
 ## Data and credits
 

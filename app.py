@@ -9,7 +9,7 @@ import sklearn
 import streamlit as st
 
 ROOT = Path(__file__).parent
-DATA = ROOT / "data"
+DATA = ROOT / "app_data"  # small bundle made by scripts/make_app_data.py
 MODELS = ROOT / "models"
 
 ALL = ["log_var", "q2", "q_max_minus_q2", "ir_change", "charge_time_first5", "t_avg_mean"]
@@ -24,12 +24,12 @@ st.set_page_config(page_title="Battery cycle life", layout="wide")
 
 @st.cache_data
 def load_data():
-    cells = pd.read_csv(DATA / "cells_clean.csv", index_col="cell_id")
-    features = pd.read_csv(DATA / "features_stage3.csv", index_col="cell_id")
-    cycles = pd.read_parquet(DATA / "cycles_clean.parquet")
-    curves = pd.read_parquet(DATA / "delta_q_100_10.parquet")
-    voltage = np.load(DATA / "voltage_grid.npy")
-    return cells, features, cycles, curves, voltage
+    # one table holds both the cell info (batch, policy) and the model inputs
+    cells = pd.read_csv(DATA / "cells.csv", index_col="cell_id")
+    cycles = pd.read_parquet(DATA / "capacity.parquet")
+    curves = pd.read_parquet(DATA / "delta_q.parquet")
+    voltage = np.load(DATA / "voltage.npy")
+    return cells, cells, cycles, curves, voltage
 
 
 @st.cache_resource
