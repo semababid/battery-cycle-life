@@ -1,15 +1,16 @@
+import json
 from pathlib import Path
 
+import joblib
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import sklearn
 import streamlit as st
-from sklearn.linear_model import LinearRegression
-
-from src.models import elastic_net
 
 ROOT = Path(__file__).parent
 DATA = ROOT / "data"
+MODELS = ROOT / "models"
 
 ALL = ["log_var", "q2", "q_max_minus_q2", "ir_change", "charge_time_first5", "t_avg_mean"]
 SETS = {
@@ -32,13 +33,12 @@ def load_data():
 
 
 @st.cache_resource
-def fit_models(features):
-    # the same two models as in notebooks 09 and 11, fitted on the 41 training cells
-    train = features[features["split"] == "train"]
-    y = np.log10(train["cycle_life"])
-    line = LinearRegression().fit(train[["log_var"]], y)
-    net = elastic_net().fit(train[ALL], y)
-    return line, net
+def load_models():
+    # the two models from notebooks 09 and 11, saved by scripts/save_models.py
+    info = json.loads((MODELS / "info.json").read_text())
+    if info["scikit-learn"] != sklearn.__version__:
+        st.warning(f"The models were saved with scikit-learn {info['scikit-learn']}, this is {sklearn.__version__}.")
+    return joblib.load(MODELS / "line.joblib"), joblib.load(MODELS / "elastic_net.joblib")
 
 
 def cell_order(cell_id):
@@ -47,7 +47,7 @@ def cell_order(cell_id):
 
 
 cells, features, cycles, curves, voltage = load_data()
-line, net = fit_models(features)
+line, net = load_models()
 train_ids = features.index[features["split"] == "train"]
 
 st.title("How long will this battery cell last?")
