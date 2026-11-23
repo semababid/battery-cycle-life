@@ -2,11 +2,13 @@
 
 Predicting how many charge cycles a lithium-ion cell will last, using only its first 100 cycles.
 
+Try it: [battery-cycle-life.streamlit.app](https://battery-cycle-life.streamlit.app/). Pick a cell and compare both models' predictions with how long it really lasted.
+
 The data comes from Severson et al. (2019), "Data-driven prediction of battery cycle life before capacity degradation", Nature Energy. The three batch files hold 140 LFP/graphite cells (A123 APR18650M1A, 1.1 Ah), each charged with a different fast-charging policy until it lost 20% of its capacity.
 
 ![Capacity fade of all 124 cells](reports/figures/capacity_all_cells.png)
 
-The modelling is done. The paper's simplest model is reproduced, a second model with a few more features is chosen by cross-validation, and both are scored on the primary test set and, once, on a batch that was cycled a year later. The short version: the bigger model wins on the first test set and loses on the later batch. A small demo app is still to come.
+The modelling is done. The paper's simplest model is reproduced, a second model with a few more features is chosen by cross-validation, and both are scored on the primary test set and, once, on a batch that was cycled a year later. The short version: the bigger model wins on the first test set and loses on the later batch. There is also a small app to look at single cells (link above).
 
 ## Data so far
 
@@ -117,7 +119,7 @@ The tests check that no feature uses data from after the cycles it is allowed to
 pytest
 ```
 
-There is also a small app. Pick a cell and it shows the cell's capacity over its whole life, its ΔQ curve next to the training cells, and what both models predict against how long it really lasted. It loads the two final models from `models/` instead of fitting them each time. `scripts/save_models.py` fits them on the 41 training cells and saves them there; they give exactly the predictions reported in notebooks 09 and 11. For the plots and inputs it reads a small bundle in `app_data/` (1.8 MB instead of the 8 GB download), made by `scripts/make_app_data.py` from the notebook tables. Both folders are in git, so the app runs right after cloning, without the download:
+The app ([live version](https://battery-cycle-life.streamlit.app/)) shows, for any cell you pick, its capacity over its whole life, its ΔQ curve next to the training cells, and what both models predict against how long it really lasted. It loads the two final models from `models/` instead of fitting them each time. `scripts/save_models.py` fits them on the 41 training cells and saves them there; they give exactly the predictions reported in notebooks 09 and 11. For the plots and inputs it reads a small bundle in `app_data/` (1.8 MB instead of the 8 GB download), made by `scripts/make_app_data.py` from the notebook tables. Both folders are in git, so the app runs right after cloning, without the download:
 
 ```bash
 streamlit run app.py
