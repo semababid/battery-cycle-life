@@ -1,0 +1,18 @@
+{
+  "target": "log10(cycle life)",
+  "training cells": 41,
+  "line inputs": [
+    "log_var"
+  ],
+  "elastic net inputs": [
+    "log_var",
+    "q2",
+    "q_max_minus_q2",
+    "ir_change",
+    "charge_time_first5",
+    "t_avg_mean"
+  ],
+  "elastic net alpha": 0.047851,
+  "elastic net l1_ratio": 0.1,
+  "scikit-learn": "1.9.1"
+}
