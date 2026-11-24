@@ -2,6 +2,8 @@
 # Downloads the three MATR batches used in Severson et al. (2019), about 8.3 GB in total.
 # -C - resumes a broken download.
 set -euo pipefail
+# data/ is not in git, so a fresh clone doesn't have this folder yet
+mkdir -p "$(dirname "$0")/../data/raw"
 cd "$(dirname "$0")/../data/raw"
 base=https://data.matr.io/1/api/v1/file
 curl -L -C - -o 2017-05-12_batchdata.mat "$base/5c86c0b5fa2ede00015ddf66/download"
