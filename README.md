@@ -1,106 +1,64 @@
 # battery-cycle-life
 
-Predicting how many charge cycles a lithium-ion cell will last, using only its first 100 cycles.
+This project predicts how many charge cycles a lithium-ion cell will last, using only its first 100 cycles. I reproduce the paper's simplest model on public lab data, try a bigger one, and test both on a batch of cells that was cycled a year later.
 
-Try it: [battery-cycle-life.streamlit.app](https://battery-cycle-life.streamlit.app/). Pick a cell and compare both models' predictions with how long it really lasted.
+Try it: [battery-cycle-life.streamlit.app](https://battery-cycle-life.streamlit.app/). Pick a cell and compare both models with how long it really lasted.
 
-The data comes from Severson et al. (2019), "Data-driven prediction of battery cycle life before capacity degradation", Nature Energy. The three batch files hold 140 LFP/graphite cells (A123 APR18650M1A, 1.1 Ah), each charged with a different fast-charging policy until it lost 20% of its capacity.
+## The problem
+
+A cell counts as worn out once it has lost 20% of its capacity. In this data that takes anywhere from 148 to 2,237 cycles, so a test that runs to the end can take a long time. A good guess after 100 cycles would save most of it.
+
+The catch is that at cycle 100 most cells still look alike. On the training cells, capacity at cycle 100 has a correlation of only 0.47 with log cycle life, and 81% of all cells have a little more capacity at cycle 100 than at cycle 2.
 
 ![Capacity fade of all 124 cells](reports/figures/capacity_all_cells.png)
 
-The modelling is done. The paper's simplest model is reproduced, a second model with a few more features is chosen by cross-validation, and both are scored on the primary test set and, once, on a batch that was cycled a year later. The short version: the bigger model wins on the first test set and loses on the later batch. There is also a small app to look at single cells (link above).
+## Data
 
-## Data so far
+The data is from Severson et al. (2019): commercial LFP/graphite cells (A123, 1.1 Ah), each fast-charged with a different policy. The raw files hold 140 cells. Following the authors' own loading notebook, I merge 5 cells that kept cycling in a second batch and drop 16, which leaves the paper's 124 (notebook 04). The split is also the paper's: 41 training cells and 43 primary test cells from batches 1 and 2, and 40 cells from batch 3, which was run a year later with a changed setup.
 
-The paper uses 124 of the 140 cells. Notebook 04 gets to the same 124:
+## Models
 
-- 5 batch 1 cells kept cycling in batch 2, so their batch 2 cycles are appended to them. Their lifetimes go up from about 1,200 to as much as 2,237 cycles.
-- 16 cells are dropped: the 5 duplicates from that merge, 5 cells that never reached 80% capacity, 2 that were still above 80% after 2,000 cycles, and 4 that the paper calls noisy. I could only see the noise in one of those 4, but I drop all of them so the results stay comparable.
-- Glitches (zero resistance, paused charges, impossible capacities) become missing values, and cycles after end of life are cut.
+Both models use only the first 100 cycles and predict log10 of the cycle life.
 
-That leaves 41 training cells, 43 primary test cells and 40 cells in a later batch, the same split as the paper.
+The paper's main idea is ΔQ(V): the discharge curve at cycle 100 minus the one at cycle 10, on a fixed voltage grid. Cells that will die early already show a deeper dip in it. The log10 of its variance has a correlation of -0.90 with log cycle life on the training cells. The first model is a straight line on that one number, as in the paper.
 
-Capacity on its own says little about lifetime at cycle 100. Most cells still look the same at that point, and 81% of them have slightly more capacity than at cycle 2 (notebook 05).
+The second model adds five simple values from the per-cycle summary: capacity at cycle 2, the early rise in capacity, the change in resistance, the charge time and the temperature. It is an Elastic Net, picked with repeated cross-validation on the training cells only. Tests make sure no feature reads anything after cycle 100.
 
-## First model: ΔQ(V)
+## Results
 
-The paper's key feature is ΔQ(V): the discharge curve at cycle 100 minus the one at cycle 10, on a fixed voltage grid. Cells that die early already show a deeper, wider dip in this curve, even when their capacity still looks fine.
+RMSE in cycles. The first column is cross-validation on the training cells. The test sets were only used after both models were fixed.
 
-![ΔQ curves of the training cells, coloured by cycle life](reports/figures/delta_q_train.png)
-
-One number per cell, log10 of the variance of ΔQ, has a correlation of -0.90 with log10 cycle life on the training cells. A straight line through it (notebook 06):
-
-| Model | Train RMSE | Primary test RMSE | Primary test MAPE |
+| Model | Training cells (CV) | Primary test | Later batch |
 |---|---|---|---|
-| Predict the mean life | 323 cycles | 393 cycles | 39.5% |
-| log10 var(ΔQ), linear | 104 cycles | 138 cycles | 14.7% |
-| Paper, same model | | 138 cycles | |
+| Predict the mean life | 297 | 393 | 470 |
+| Line on log var(ΔQ) | 108 | 138 | 196 |
+| Elastic Net, 6 features | 82 | 114 | 209 to 262 |
+| Paper, same line | | 138 | 196 |
+| Paper, full model | | 100 | 214 |
 
-The test set has only 43 cells, so the 138 isn't precise: resampling them gives a 95% range of 92 to 191 cycles. The paper leaves the shortest-lived test cell (b2c1) out; without it the result is 138.3, so the match holds either way.
+The line matches the paper's numbers, which tells me the data pipeline is right.
 
-Most of the remaining error comes from three test cells that live over 1,700 cycles. Only one training cell lives that long, so the model is extrapolating there. The later batch is kept aside until the final test.
+On the primary test set the Elastic Net is 24 cycles better than the line (95% range of the difference: 8 to 36). On the later batch it is worse in every run I tried, by 13 to 67 cycles. The range comes from a random seed in the Elastic Net's own inner cross-validation (notebook 11). It also predicts most of those cells too short.
 
-## Second model: a few more features
+The reason is that batch 3 looks different in the extra features. All 40 of its cells start with less capacity than the median training cell, and 36 of them charge in under 10.5 minutes. In batches 1 and 2, charging that fast went with a short life (median 489 cycles). In batch 3 the median life is 964. The ΔQ feature carries over to the new batch, but the extra features don't. The paper's own bigger model shows the same flip.
 
-Five simple features from the per-cycle summary are added to log10 var(ΔQ): capacity at cycle 2, the early rise in capacity, the change in resistance, the charge time of the first cycles and the mean temperature (notebook 07). A test checks that none of them reads anything after cycle 100.
-
-The model was picked on the training cells only, with 5-fold cross-validation repeated 20 times (notebook 08). An Elastic Net on all six features came out best. A curved version of the first model did badly, because its prediction runs away for the longest-lived cell.
-
-| Model | CV RMSE (training cells) | Primary test RMSE | Primary test MAPE |
-|---|---|---|---|
-| log10 var(ΔQ), linear | 108 cycles | 138 cycles | 14.7% |
-| log10 var(ΔQ), curved | 170 cycles | not scored | |
-| Elastic Net, 6 features | 82 cycles | 114 cycles | 12.8% |
-
-On the test set the Elastic Net is 24 cycles better than the line (notebook 09). Fitting it with other random seeds gives 112 to 114, so this result doesn't depend on the seed. Resampling the test cells puts that difference between 8 and 36 cycles, and the Elastic Net comes out ahead in 99.8% of the resamples. It keeps four of the six features and sets resistance change and temperature to zero.
-
-![Predicted vs actual on the primary test set](reports/figures/pred_vs_actual_primary.png)
-
-It still struggles with the same cells as the first model. The three test cells above 1,500 cycles have an RMSE of 329, against 76 for the other 40. And b2c1, which dies at 148 cycles, is predicted at 335.
+So for new cells from the same setup I would use the Elastic Net, and for cells from a setup the models haven't seen, the line.
 
 ## How early can it predict?
 
-The same two models, given only the first 20, 40, 60, 80 or 100 cycles (notebook 10):
-
 ![Prediction error against the number of cycles used](reports/figures/how_early.png)
 
-In cross-validation the error falls until about 60 cycles and then stays flat: the Elastic Net is at 85 cycles with 60 cycles of data and at 82 with 100. Before that, ΔQ hasn't built up enough. After 20 cycles the model ignores it and mostly guesses from the charge time.
-
-The primary test set looks worse at 60 and 80 cycles (187 and 171), and almost all of that is one long-lived cell, b1c0, predicted 830 to 900 cycles too long. Its ΔQ variance at that point is lower than any training cell's. On the other 40 test cells the error is 76, 72 and 76 cycles at 60, 80 and 100 cycles.
-
-So 60 cycles look like enough for typical cells, and not for the ones that end up living very long. With three such cells in the test set, that's a pattern to keep in mind, not a firm result.
-
-## Final test: the later batch
-
-Batch 3 was cycled about a year after the others, with a changed setup and mostly different charging policies. Both models were fixed before they were scored on it, once (notebook 11).
-
-| Model (RMSE in cycles) | Train | Primary test | Later batch |
-|---|---|---|---|
-| Predict the mean life | 323 | 393 | 470 |
-| log10 var(ΔQ), linear | 104 | 138 | 196 |
-| Elastic Net, 6 features | 76 | 114 | 262 (209 to 262) |
-| Paper, variance model | | 138 | 196 |
-| Paper, full model | | 100 | 214 |
-
-On the later batch the order flips. The Elastic Net picks its amount of shrinking with a small cross-validation of its own, and that depends on a random seed. With ten seeds its later-batch RMSE is 209 to 262; 262 is the seed used everywhere else, and also the worst of the ten. It is worse than the one-feature line in all ten runs, by 13 to 67 cycles, and predicts 35 to 39 of the 40 cells too short. How big the gap is isn't settled: for six of the ten seeds its 95% range includes zero. The paper's own bigger model shows the same flip.
-
-The reason is that this batch looks different in the extra features. All 40 cells start with less capacity than the median training cell, and 36 of them charge in under 10.5 minutes, which in batches 1 and 2 went with a short life (median 489 cycles). Here the median life is 964. The Elastic Net learned those links from batches 1 and 2 and they don't hold in batch 3. The ΔQ feature carries over much better.
-
-![Predicted vs actual on the later batch](reports/figures/pred_vs_actual_later_batch.png)
-
-Cross-validation didn't catch this, because every fold mixed batches 1 and 2. Training on one of those batches and checking on the other gives a mixed answer: the Elastic Net wins in one direction (102 against 158 cycles) and loses badly in the other (606 against 416). I left both models as they were. For new cells from the same setup the Elastic Net is the better one, and for cells from an unknown setup I would use the line.
+The same two models, given only the first 20, 40, 60, 80 or 100 cycles (notebook 10). In cross-validation the error stops falling at about 60 cycles: the Elastic Net is at 85 cycles with 60 cycles of data and at 82 with 100. On the primary test set, 60 and 80 cycles look worse (187 and 171), but that comes almost entirely from one long-lived cell whose ΔQ is outside anything in the training data. On the other 40 test cells the error is 76, 72 and 76 at 60, 80 and 100 cycles. So 60 cycles seem enough for typical cells but not for the ones that live very long. There are only three such cells in the test set, so I'd want more data before relying on it.
 
 ## Limitations
 
-- Cells that never reached 80% capacity are left out, because their lifetime is unknown. That includes the two longest-running cells of the later batch, so the data has no very long-lived cells that were still going when the test ended.
-- Four later-batch cells are dropped only because the paper calls them noisy. Only one of them looks noisy in my checks.
-- The later batch was run with a changed test setup ("newstructure" in the policy names). Its cells live longer, their charge time barely changes from cycle to cycle, their resistance is lower, and only 1 of its 8 charging policies was used in batches 1 and 2 (notebook 05). A model trained on batches 1 and 2 is likely to do worse there.
-- The overview plots in notebook 05 use all cells, test cells included. Model features are chosen on the training cells only.
-- With 43 test cells, differences of less than about 50 cycles between models can't be trusted from the test set alone, so models are compared with cross-validation on the training cells.
-- That cross-validation only uses batches 1 and 2, so it says nothing about a new batch. Holding out a whole training batch can only be done two ways here, which is too few to rely on.
-- The ranges from resampling test cells don't include the random seed of the Elastic Net or the choice of training cells. The seed is checked separately in notebook 11.
+- The data is small. With 43 test cells, the line's test RMSE could be anywhere from about 92 to 191, so I compared models with cross-validation and not on the test set.
+- That cross-validation mixes batches 1 and 2, so it couldn't see the batch 3 problem coming. Training on one of those batches and checking on the other gives a mixed answer: the Elastic Net wins one way (102 against 158) and loses badly the other (606 against 416).
+- Cells that never reached 80% capacity are left out because their life is unknown, so there are no very long-lived cells that were still running when the test ended.
+- Four batch 3 cells are dropped only because the paper calls them noisy. Only one of them looks noisy to me.
+- Both models struggle with cells that live past 1,500 cycles. Only one training cell is in that range.
 
-## Setup
+## How to run
 
 Python 3.13:
 
@@ -108,36 +66,35 @@ Python 3.13:
 python3.13 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-./scripts/download_data.sh
 ```
 
-The download script fetches the three batches from data.matr.io (about 8.3 GB) into `data/raw/`, which git ignores. Then run the notebooks in order, 01 to 11. Most of them save tables in `data/` that the later ones read.
-
-The tests check that no feature uses data from after the cycles it is allowed to see, and that the error measures and the model recipe behave as expected. They use made-up data, so they run without the download:
-
-```bash
-pytest
-```
-
-The app ([live version](https://battery-cycle-life.streamlit.app/)) shows, for any cell you pick, its capacity over its whole life, its ΔQ curve next to the training cells, and what both models predict against how long it really lasted. It loads the two final models from `models/` instead of fitting them each time. `scripts/save_models.py` fits them on the 41 training cells and saves them there; they give exactly the predictions reported in notebooks 09 and 11. For the plots and inputs it reads a small bundle in `app_data/` (1.8 MB instead of the 8 GB download), made by `scripts/make_app_data.py` from the notebook tables. Both folders are in git, so the app runs right after cloning, without the download:
+The app and the tests run straight after cloning. The app reads a 1.8 MB bundle in `app_data/` and the two saved models in `models/`. The tests use made-up data and those committed files:
 
 ```bash
 streamlit run app.py
+pytest
 ```
+
+To rerun the analysis, download the raw data (about 8.3 GB from data.matr.io) and run the notebooks in order, 01 to 11:
+
+```bash
+./scripts/download_data.sh
+```
+
+`scripts/save_models.py` and `scripts/make_app_data.py` rebuild `models/` and `app_data/` from the notebook tables.
 
 ## Layout
 
-- `app.py` the small app
-- `app_data/` the small data bundle the app reads
-- `models/` the two final models, saved for the app (with `info.json`: inputs, settings, scikit-learn version)
-- `notebooks/` exploration, in the order I did it
-- `src/` code the notebooks share: reading the raw files (`load.py`), the features (`features.py`), the model recipe and error measures (`models.py`), and the paper's split (`split.py`)
-- `tests/` checks on the features and the model code
-- `reports/figures/` saved plots
-- `scripts/` data download, saving the models and building the app bundle
+- `notebooks/` the analysis, in the order I did it
+- `src/` shared code: reading the raw files, features, the model recipe, the paper's split
+- `tests/` look-ahead checks, the model code, and the app bundle
+- `app.py`, `app_data/`, `models/` the app and what it needs
+- `reports/` result tables and figures
+- `scripts/` download, saving the models, building the app bundle
 
 ## Data and credits
 
-- Data: Severson, Attia et al., "Data-driven prediction of battery cycle life before capacity degradation", Nature Energy 4, 383-391 (2019). Downloaded from data.matr.io; check the terms there before reusing it.
-- Which cells to merge and drop follows the authors' data loading notebook (github.com/rdbraatz/data-driven-prediction-of-battery-cycle-life-before-capacity-degradation).
-- The train and test cell lists in `src/split.py` are taken from Microsoft's BatteryML (MIT license).
+- Severson, Attia et al., "Data-driven prediction of battery cycle life before capacity degradation", Nature Energy 4, 383-391 (2019). Data from data.matr.io; check the terms there before reusing it.
+- Which cells to merge and drop follows the authors' loading notebook (github.com/rdbraatz/data-driven-prediction-of-battery-cycle-life-before-capacity-degradation).
+- The train and test cell lists in `src/split.py` come from Microsoft's BatteryML (MIT license).
+- The paper's numbers in the results table are as quoted in Attia et al. (2021), arXiv 2101.01885.
